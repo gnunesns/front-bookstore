@@ -69,7 +69,7 @@
                 <v-data-table
                     :loading="isLoading"
                     :headers="headers"
-                    :items="livros"
+                    :items="livros.content"
                     :items-per-page="5"
                     :search="search"
                     class="elevation-5"
@@ -130,7 +130,7 @@
                                                 <v-text-field
                                                     v-model="editedItem.nome"
                                                     :rules="nameRules"
-                                                    :counter="30"
+                                                    :counter="60"
                                                     append-icon="mdi-book"
                                                     label="Nome*"
                                                     required
@@ -140,9 +140,9 @@
                                                 <v-select
                                                     v-model="editedItem.editora"
                                                     :rules="editoraRules"
-                                                    :items="editoras"
-                                                    item-text="nome"
-                                                    item-value="id"
+                                                    :items="editoras.content" 
+                                                    item-text="nomeEditora"
+                                                    item-value="codigoEditora"
                                                     label="Editora*"
                                                     return-object
                                                     append-icon="mdi-bookshelf"
@@ -163,12 +163,12 @@
                                                 <v-text-field
                                                     v-model="editedItem.lancamento"
                                                     :rules="lancamentoRules"
-                                                    :counter="4"
                                                     label="Ano de lançamento*"
                                                     append-icon="mdi-calendar"
                                                     required
                                                     color="#198754"
                                                 ></v-text-field>
+                                                
 
                                                 <v-text-field
                                                     v-model="editedItem.quantidade"
@@ -176,7 +176,7 @@
                                                     append-icon="mdi-numeric"
                                                     label="Quantidade*"
                                                     type="number"
-                                                    onkeypress="return event,charCode > 48"
+                                                    onkeypress="return event.charCode >= 8 && event.charCode <= 57"
                                                     min="1"
                                                     required
                                                     color="#198754"
@@ -185,11 +185,11 @@
 
                                                 <v-text-field
                                                     v-model="editedItem.quantidade"
-                                                    :rules="quantidadeeditRules"
+                                                    :rules="quantidadeEditRules"
                                                     append-icon="mdi-numeric"
                                                     label="Quantidade*"
                                                     type="number"
-                                                    onkeypress="return event,charCode > 48"
+                                                    onkeypress="return event.charCode >= 8 && event.charCode <= 57"
                                                     min="0"
                                                     color="#198754"
                                                     v-if="editedIndex != -1"
@@ -211,7 +211,44 @@
 
                                 </v-card>
                             </v-dialog>
+                            <v-dialog v-model="dialogDelete" max-width="500px">
+                                <v-card>
+                                    <v-card-title class="text-h5">Você deseja deletar este livro?</v-card-title>
+                                    <v-card-actions>
+                                        <v-spacer></v-spacer>
+                                        <v-btn color="blue darken-1" text @click="closeDelete">Cancel</v-btn>
+                                        <v-btn color="blue darken-1" text @click="deleteItemConfirm">Sim</v-btn>
+                                        <v-spacer></v-spacer>
+                                    </v-card-actions>
+                                </v-card>
+                            </v-dialog>
                         </v-toolbar>
+                    </template>
+                    <template v-slot:[`item.quantidade`]="{ item }">
+                        <v-chip outlined v-if="item.quantidade == 0" color="red">
+                            Indisponível
+                        </v-chip>
+                        <v-chip outlined v-else-if="item.quantidade > 0" color="green">
+                            {{ item.quantidade }}
+                        </v-chip>
+                    </template>
+                    <template v-slot:[`item.acoes`]="{ item }">
+                        <v-tooltip top color="#0077FF">
+                            <template v-slot:activator="{ on, attrs }">
+                                <v-icon class="mr-2" color="#0077FF" @click="editItem(item)" v-bind="attrs" v-on="on">
+                                    mdi-pencil
+                                </v-icon>
+                            </template>
+                            <span>Alterar</span>
+                        </v-tooltip>
+                        <v-tooltip top color="red">
+                            <template v-slot:activator="{ on, attrs }">
+                                <v-icon class="mr-2" color="red" @click="deleteItem(item)" v-bind="attrs" v-on="on">
+                                    mdi-delete
+                                </v-icon>
+                            </template>
+                            <span>Deletar</span>
+                        </v-tooltip>
                     </template>
                     
                 </v-data-table>
@@ -222,6 +259,8 @@
 </template>
 
 <script>
+import Livro from '@/services/livros';
+import Editora from '@/services/editoras';
 import FooterView from '@/views/FooterView.vue';
 export default {
     name: "LivroComp",
@@ -234,21 +273,22 @@ export default {
             livro: {
                 id: '',
                 nome: '',
-                editora: {
-                    id: '',
-                    nome: '',
-                    cidade: ''
-                },
                 autor: '',
                 lancamento: '',
-                quantidade: ''
+                quantidade: '',
+                editora: {
+                    codigoEditora: '',
+                    nomeEditora: '',
+                    cidade: '',
+                    
+                },
             },
+
             livros: [],
             editoras: [],
-            disponiveis: [],
-
+    
             valid: true,
-            ano: 0,
+            
 
             nameRules: [
                 v => !!v || 'Campo nome é obrigatório!',
@@ -268,17 +308,21 @@ export default {
             ],
             lancamentoRules: [
                 v => !!v || 'Campo lançamento é obrigatório! ',
-                v => (v && v >= 1000) || 'O ano deve conter 4 digitos! ',
-                v => (v && v <= this.ano) || 'O ano de lançamento não pode ser maior que o ano atual -- ' + this.ano
+                //v => (v && v >= 1000) || 'O ano deve conter 4 digitos! ',
+                //v => (v && v <= this.ano) || 'O ano de lançamento não pode ser maior que o ano atual -- ' + this.ano
             ],
-
             quantidadeRules: [
                 v => !!v || 'Campo quantidade é obrigatório!',
                 v => (v && v >= 1) || 'A quantidade não pode ser menor que 1! ',
                 v => (v && !isNaN(v)) || 'Informe um valor válido'
             ],
+            quantidadeEditRules: [
+                v => !!v || 'Campo quantidade é obrigatório!',
+                v => (v && v >= 1) || 'A quantidade não pode ser menor que 1! ',
+                v => (v && !isNaN(v)) || 'Informe um valor válido'
+            ],
 
-            editoraRules: [v => (v && v.nome != null) || 'Escolha uma editora'],
+            editoraRules: [v => (v && v.nomeEditora != null) || 'Escolha uma editora'],
 
             dialog: false,
             dialogDelete: false,
@@ -286,25 +330,25 @@ export default {
             headers: [
                 { text: 'Cód.', value: 'id' },
                 { text: 'Nome', value: 'nome' },
-                { text: 'Editora', value: 'editora.nome' },
+                { text: 'Editora', value: 'editora.nomeEditora' },
                 { text: 'Autor', value: 'autor' },
                 { text: 'Lançamento', value: 'lancamento' },
-                { text: 'Qtd.Disponível', value: 'quantidade' },
+                { text: 'Quantidade', value: 'quantidade' },
                 { text: 'Ações', value: 'acoes', sortable: false }
             ],
             editedIndex: -1,
             editedItem: {
                 id: '',
                 nome: '',
-                editora: {
-                    id: '',
-                    nome: null,
-                    cidade: ''
-                },
                 autor: '',
                 lancamento: '',
                 quantidade: '',
-                totalalugado: ''
+                totalalugado: '',
+                editora: {
+                    codigoEditora: '',
+                    nomeEditora: null,
+                    cidade: '',
+                },
             }
         };
     },
@@ -327,16 +371,164 @@ export default {
         }
     },
 
+    mounted() {
+        this.listar();
+    },
+
     methods: {
+
+        listar() {
+            Livro.listar().then(resposta => {
+                console.log(resposta);
+                this.isLoading = false;
+                this.livros = resposta.data;
+            });
+
+            Editora.listar().then(resposta => {
+                this.editoras = resposta.data;
+            })
+            
+        },
+
+        editItem(item) {
+            this.editedIndex = this.livros.content.indexOf(item);
+            this.editedItem = Object.assign({}, item);
+            this.dialog = true;
+        },
+
         close() {
             this.dialog = false;
-
             this.$nextTick(() => {
                 this.editedItem = Object.assign({}, this.defaultItem);
                 this.editedIndex = -1;
             });
             this.$refs.form.resetValidation();
         },
+
+        closeDelete() {
+            this.dialogDelete = false;
+            this.$nextTick(() => {
+                this.editedItem = Object.assign({}, this.defaultItem);
+                this.editedIndex = -1;
+            });
+        },
+
+        deleteItem(item) {
+            this.$swal({
+                title: 'Tem certeza?',
+                text: 'Este livro será deletada permanentemente!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sim, deletar!',
+                cancelButtonText: 'Cancelar!'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    this.editedIndex = this.livros.content.indexOf(item);
+                    this.editedItem = Object.assign({}, item);
+
+                    Livro.deletar(item.id)
+                        .then(resposta => {
+                            this.$swal({
+                                title: 'Deletedo!',
+                                text: 'Livro deletado com sucesso.',
+                                icon: 'success',
+                                confirmButtonColor: '#198754',
+                                confirmButtonText: 'Ok'
+                            });
+
+                            if (resposta != null) {
+                                this.listar();
+                            }
+                        })
+                        .catch(resposta => {
+                            if (resposta) {
+                                var erro = resposta.response.data.error;
+                                this.$swal({
+                                    icon: 'error',
+                                    text: erro,
+                                    confirmButtonColor: '#198754',
+                                    confirmButtonText: 'Ok'
+                                });
+                            }
+                        });
+                    this.reset();
+                }
+            });
+            this.editedIndex = -1;
+        },
+
+        deleteItemConfirm() {
+            this.livros.splice(this.editedIndex, 1);
+            this.closeDelete();
+        },
+
+        formatDate(date){
+            const[d,m,y] = date.split('/') 
+            console.log(`${y}-${m}-${d}`)
+            return `${y}-${m}-${d}`
+        },
+
+        save() {
+            if (this.$refs.form.validate()) {
+                if (this.editedIndex > -1) {
+                    var edit = {
+                        nome: this.editedItem.nome,
+                        editora: {codigoEditora: this.editedItem.editora.codigoEditora},
+                        autor: this.editedItem.autor,
+                        lancamento: this.editedItem.lancamento,
+                        quantidade: this.editedItem.quantidade,
+                        totalalugado: this.editedItem.totalalugado
+                    };
+                    Livro.alterar(this.editedItem.id, edit)
+                        .then(resposta => {
+                            if (resposta != null) {
+                                this.$swal('Livro alterado com sucesso!', '', 'success');
+                                this.listar();
+                                this.close();
+                            }
+                        })
+                        .catch(resposta => {
+                            this.error = resposta.response.data.error;
+                            this.$swal({
+                                icon: 'error',
+                                text: "Erro! Não foi Possível atualizar",
+                                confirmButtonColor: '#198754',
+                                confirmButtonText: 'Ok'
+                            });
+                        });
+                } else {
+                    var save = {
+                        nome: this.editedItem.nome,
+                        editora: {codigoEditora: this.editedItem.editora.codigoEditora},
+                        autor: this.editedItem.autor,
+                        lancamento: this.editedItem.lancamento,
+                        quantidade: this.editedItem.quantidade
+                    }; 
+                    Livro.salvar(save)
+                        .then(resposta => {  
+                            if (resposta != null) {
+                                this.$swal('Livro salvo com sucesso!', '', 'success');
+                                this.listar();
+                                this.close();
+                            }
+                        })
+                        .catch(resposta => {
+                            if (resposta) {
+                                this.$swal({
+                                    icon: 'error',
+                                    text: "Erro! Não foi Possível salvar",
+                                    confirmButtonColor: '#198754',
+                                    confirmButtonText: 'Ok'
+                                });
+                            }
+                        });
+                }
+            }
+        },
+
+
     }
 }
 </script>
