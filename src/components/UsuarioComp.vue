@@ -70,7 +70,7 @@
                     :loading="isLoading"
                     style="flex-grow: 1;"
                     :headers="headers"
-                    :items="usuarios"
+                    :items="usuarios.content"
                     :items-per-page="5"
                     :search="search"
                     class="elevation-5"
@@ -284,7 +284,7 @@ export default {
 
             search: '',
             headers: [
-                { text: 'Cód.', value: 'id' },
+                { text: 'Cód', value: 'id' },
                 { text: 'Nome', value: 'nome' },
                 { text: 'Endereço', value: 'endereco' },
                 { text: 'Cidade', value: 'cidade' },
@@ -334,6 +334,21 @@ export default {
             });
         },
 
+        editItem(item) {
+            this.editedIndex = this.usuarios.content.indexOf(item);
+            this.editedItem = Object.assign({}, item);
+            this.dialog = true;
+        },
+
+        atualizarform() {
+            this.usuario = {};
+            this.v$.$reset();
+        },
+
+        reset() {
+            this.$refs.form.reset();
+        },
+
         deleteItem(item) {
             this.$swal({
                 title: 'Tem certeza?',
@@ -346,17 +361,11 @@ export default {
                 cancelButtonText: 'Cancelar!'
             }).then(result => {
                 if (result.isConfirmed) {
-                    this.editedIndex = this.usuarios.indexOf(item);
+                    this.editedIndex = this.usuarios.content.indexOf(item);
                     this.editedItem = Object.assign({}, item);
 
-                    var del = {
-                        id: this.editedItem.id,
-                        nome: this.editedItem.nome,
-                        endereco: this.editedItem.endereco,
-                        cidade: this.editedItem.cidade,
-                        email: this.editedItem.email
-                    };
-                    Usuario.deletar(del)
+                    
+                    Usuario.deletar(item.id)
                         .then(resposta => {
                             this.$swal({
                                 title: 'Deletedo!',
@@ -405,6 +414,60 @@ export default {
                 this.editedItem = Object.assign({}, this.defaultItem);
                 this.editedIndex = -1;
             });
+        },
+
+        save() {
+            if (this.$refs.form.validate()) {
+                if (this.editedIndex > -1) {
+                    var edit = {
+                        nome: this.editedItem.nome,
+                        endereco: this.editedItem.endereco,
+                        cidade: this.editedItem.cidade,
+                        email: this.editedItem.email
+                    };
+                    Usuario.alterar(this.editedItem.id, edit)
+                        .then(resposta => {
+                            if (resposta != null) {
+                                this.$swal('Usuário alterado com sucesso!', '', 'success');
+                                this.listar();
+                                this.close();
+                            }
+                        })
+                        .catch(resposta => {
+                            this.error = resposta.response.data.error;
+                            this.$swal({
+                                icon: 'error',
+                                text: "Erro! Não foi Possível atualizar",
+                                confirmButtonColor: '#198754',
+                                confirmButtonText: 'Ok'
+                            });
+                        });
+                } else {
+                    var save = {
+                        nome: this.editedItem.nome,
+                        endereco: this.editedItem.endereco,
+                        cidade: this.editedItem.cidade,
+                        email: this.editedItem.email
+                    };
+                    Usuario.salvar(save)
+                        .then(resposta => {
+                            if (resposta != null) {
+                                this.$swal('Usuário salvo com sucesso!', '', 'success');
+                                this.listar();
+                                this.close();
+                            }
+                        })
+                        .catch(resposta => {
+                            this.error = resposta.response.data.error;
+                            this.$swal({
+                                icon: 'error',
+                                text: "Erro! Não foi Possível salvar",
+                                confirmButtonColor: '#198754',
+                                confirmButtonText: 'Ok'
+                            });
+                        });
+                }
+            }
         },
 
         
