@@ -70,7 +70,7 @@
                     :loading="isLoading"
                      style="flex-grow: 1;"
                     :headers="headers"
-                    :items="editoras"
+                    :items="editoras.content"
                     :items-per-page="5"
                     :search="search"
                     class="elevation-5"
@@ -129,10 +129,10 @@
                                         <v-container>
                                             <v-form ref="form" v-model="valid" lazy-validation>
                                                 <v-text-field
-                                                    v-model="editedItem.nome"
+                                                    v-model="editedItem.nomeEditora"
                                                     :rules="nameRules"
                                                     append-icon="mdi-bookshelf"
-                                                    :counter="30"
+                                                    :counter="80"
                                                     label="Nome*"
                                                     required
                                                     color="#198754"
@@ -141,7 +141,7 @@
                                                 <v-text-field
                                                     v-model="editedItem.cidade"
                                                     :rules="cidadeRules"
-                                                    :counter="20"
+                                                    :counter="50"
                                                     append-icon="mdi-city"
                                                     label="Cidade*"
                                                     required
@@ -168,6 +168,24 @@
                             
                         </v-toolbar>
                 </template>
+                <template v-slot:[`item.acoes`]="{ item }">
+                        <v-tooltip top color="#0077FF">
+                            <template v-slot:activator="{ on, attrs }">
+                                <v-icon class="mr-2" color="#0077FF" @click="editItem(item)" v-bind="attrs" v-on="on">
+                                    mdi-pencil
+                                </v-icon>
+                            </template>
+                            <span>Alterar</span>
+                        </v-tooltip>
+                        <v-tooltip top color="red">
+                            <template v-slot:activator="{ on, attrs }">
+                                <v-icon class="mr-2" color="red" @click="deleteItem(item)" v-bind="attrs" v-on="on">
+                                    mdi-delete
+                                </v-icon>
+                            </template>
+                            <span>Deletar</span>
+                        </v-tooltip>
+                    </template>
 
 
                 </v-data-table>
@@ -178,6 +196,7 @@
 </template>
 
 <script>
+import Editora from '@/services/editoras';
 import FooterView from '@/views/FooterView.vue';
 
 export default {
@@ -190,8 +209,8 @@ export default {
             isLoading: true,
             error: '',
             editora: {
-                id: '',
-                nome: '',
+                codigoEditora: '',
+                nomeEditora: '',
                 cidade: ''
             },
             editoras: [],
@@ -219,15 +238,15 @@ export default {
             dialogDelete: false,
             search: '',
             headers: [
-                { text: 'Cód.', value: 'id' },
-                { text: 'Nome', value: 'nome' },
+                { text: 'Cód', value: 'codigoEditora' },
+                { text: 'Nome', value: 'nomeEditora' },
                 { text: 'Cidade', value: 'cidade' },
                 { text: 'Ações', value: 'acoes', sortable: false }
             ],
             editedIndex: -1,
             editedItem: {
-                id: 0,
-                nome: '',
+                codigoEditora: 0,
+                nomeEditora: '',
                 cidade: ''
             }
         };
@@ -251,10 +270,89 @@ export default {
         }
     },
 
-    mounted() {
+    mounted(){
+        this.listar();
     },
 
     methods: {
+
+        listar() {
+            Editora.listar().then(resposta => {
+                console.log(resposta);
+                this.isLoading = false;
+                this.editoras = resposta.data;
+            });
+        },
+
+        atualizarform() {
+            this.editora = {};
+            this.v$.$reset();
+        },
+
+        editItem(item) {
+            this.editedIndex = this.editoras.content.indexOf(item);
+            this.editedItem = Object.assign({}, item);
+            this.dialog = true;
+        },
+
+        deleteItem(item) {
+            this.$swal({
+                title: 'Tem certeza?',
+                text: 'Esta editora será deletada permanentemente!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sim, deletar!',
+                cancelButtonText: 'Cancelar'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    this.editedIndex = this.editoras.content.indexOf(item);
+                    this.editedItem = Object.assign({}, item);
+
+                    
+                    Editora.deletar(item.codigoEditora)
+                        .then(resposta => {
+                            this.$swal({
+                                title: 'Deleteda!',
+                                text: 'Editora deletada com sucesso.',
+                                icon: 'success',
+                                confirmButtonColor: '#198754',
+                                confirmButtonText: 'Ok'
+                            });
+
+                            if (resposta != null) {
+                                this.listar();
+                            }
+                        })
+                        .catch(resposta => {
+                            if (resposta) {
+                                var erro = resposta.response.data.error;
+                                this.$swal({
+                                    icon: 'error',
+                                    text: erro,
+                                    confirmButtonColor: '#198754',
+                                    confirmButtonText: 'Ok'
+                                });
+                            }
+                        });
+                    this.reset();
+                }
+                this.editedIndex = -1;
+            });
+        },
+
+        deleteItemConfirm() {
+            this.editoras.splice(this.editedIndex, 1);
+        },
+
+        closeDelete() {
+            this.editedIndex = -1;
+        },
+
+        reset() {
+            this.$refs.form.reset();
+        },
         
         close() {
             this.dialog = false;
@@ -263,6 +361,56 @@ export default {
                 this.editedIndex = -1;
             });
             this.$refs.form.resetValidation();
+        },
+
+        save() {
+            if (this.$refs.form.validate()) {
+                if (this.editedIndex > -1) {
+                    var edit = {
+                        nomeEditora: this.editedItem.nomeEditora,
+                        cidade: this.editedItem.cidade
+                    };
+                    Editora.alterar(this.editedItem.codigoEditora, edit)
+                        .then(resposta => {
+                            if (resposta != null) {
+                                this.$swal('Editora alterada com sucesso!', '', 'success');
+                                this.listar();
+                                this.close();
+                            }
+                        })
+                        .catch(resposta => {
+                            this.error = resposta.response.data.error;
+                            this.$swal({
+                                icon: 'error',
+                                text: "Erro! Não foi Possível atualizar",
+                                confirmButtonColor: '#198754',
+                                confirmButtonText: 'Ok'
+                            });
+                        });
+                } else {
+                    var save = {
+                        nomeEditora: this.editedItem.nomeEditora,
+                        cidade: this.editedItem.cidade
+                    };
+                    Editora.salvar(save)
+                        .then(resposta => {
+                            if (resposta != null) {
+                                this.$swal('Editora salva com sucesso!', '', 'success');
+                                this.listar();
+                                this.close();
+                            }
+                        })
+                        .catch(resposta => {
+                            this.error = resposta.response.data.error;
+                            this.$swal({
+                                icon: 'error',
+                                text: "Erro! Não foi Possível salvar",
+                                confirmButtonColor: '#198754',
+                                confirmButtonText: 'Ok'
+                            });
+                        });
+                }
+            }
         },
     }
 }
