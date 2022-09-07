@@ -20,7 +20,7 @@
                             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                                     <li class="nav-item">
-                                        <router-link class="nav-link " to="/about" aria-current="page" href="#">
+                                        <router-link class="nav-link " to="/" aria-current="page" href="#">
                                             <v-icon
                                                 style="color:#dfdfdf; margin-top: -3px; margin-right: 4px; font-size: 20px"
                                                 >mdi-home</v-icon
