@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import HomeView from '@/views/HomeView'
 import UsuarioView from '@/views/UsuarioView'
 import EditoraView from "@/views/EditoraView"
 import LivroView from '@/views/LivroView'
@@ -8,6 +9,12 @@ import AluguelView from '@/views/AluguelView'
 Vue.use(VueRouter)
 
 const routes = [
+
+  {
+    path: '/',
+    name: 'HomeView',
+    component: HomeView
+  },
   {
     path: '/usuarios',
     name: 'UsuarioView',
@@ -32,7 +39,7 @@ const routes = [
   },
   {
     path: '/about',
-    name: 'about',
+    name: 'About',
     // route level code-splitting
     // this generates a separate chunk (about.[hash].js) for this route
     // which is lazy-loaded when the route is visited.
