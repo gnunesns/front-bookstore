@@ -162,14 +162,14 @@
 
                                                 <v-text-field
                                                     v-model="editedItem.lancamento"
+                                                    v-mask="'##/##/####'" 
                                                     :rules="lancamentoRules"
-                                                    label="Ano de lançamento*"
+                                                    label="Data de lançamento*"
                                                     append-icon="mdi-calendar"
                                                     required
                                                     color="#198754"
                                                 ></v-text-field>
-                                                
-
+                                                    
                                                 <v-text-field
                                                     v-model="editedItem.quantidade"
                                                     :rules="quantidadeRules"
@@ -262,6 +262,7 @@
 import Livro from '@/services/livros';
 import Editora from '@/services/editoras';
 import FooterView from '@/views/FooterView.vue';
+
 export default {
     name: "LivroComp",
     components: { 
@@ -349,7 +350,7 @@ export default {
                     nomeEditora: null,
                     cidade: '',
                 },
-            }
+            },
         };
     },
 
@@ -359,7 +360,11 @@ export default {
         },
         saveEdit() {
             return this.editedIndex === -1 ? 'Salvar' : 'Editar';
-        }
+        },
+        lancamentoDateFormatted() { 
+            if(!this.editedItem.lancamento) return null
+            return this.formatDate(this.editedItem.lancamento);
+        },
     },
 
     watch: {
@@ -464,10 +469,9 @@ export default {
             this.closeDelete();
         },
 
-        formatDate(date){
-            const[d,m,y] = date.split('/') 
-            console.log(`${y}-${m}-${d}`)
-            return `${y}-${m}-${d}`
+        formatDate(date) {
+            const [yyyy, mm, dd] = date.split('-');
+            return `${dd}/${mm}/${yyyy}`;
         },
 
         save() {
@@ -541,7 +545,6 @@ html, body {
 label.logo {
     color: white;
     font-size: 20px;
-    padding: 0 116px;
     font-weight: bold;
     
 }

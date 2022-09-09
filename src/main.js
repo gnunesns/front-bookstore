@@ -11,6 +11,9 @@ import VueChartkick from 'vue-chartkick'
 import  'chart.js';
 import 'hchs-vue-charts'
 
+import VueTheMask from 'vue-the-mask'
+Vue.use(VueTheMask)
+
 
 Vue.use(VueChartkick)
 Vue.use(VueSweetalert2);
