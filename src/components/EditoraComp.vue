@@ -327,10 +327,10 @@ export default {
                         })
                         .catch(resposta => {
                             if (resposta) {
-                                var erro = resposta.response.data.error;
                                 this.$swal({
                                     icon: 'error',
-                                    text: erro,
+                                    title: 'Erro ao Deletar!',
+                                    text: 'Este editora está vinculada a um livro em Aluguel!',
                                     confirmButtonColor: '#198754',
                                     confirmButtonText: 'Ok'
                                 });
