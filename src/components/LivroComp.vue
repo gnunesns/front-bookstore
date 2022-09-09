@@ -444,10 +444,10 @@ export default {
                         })
                         .catch(resposta => {
                             if (resposta) {
-                                var erro = resposta.response.data.error;
                                 this.$swal({
                                     icon: 'error',
-                                    text: erro,
+                                    title: 'Erro ao Deletar!',
+                                    text: 'Este livro está vinculada a um Aluguel!',
                                     confirmButtonColor: '#198754',
                                     confirmButtonText: 'Ok'
                                 });
