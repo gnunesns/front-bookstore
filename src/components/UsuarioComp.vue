@@ -380,13 +380,15 @@ export default {
                             }
                         })
                         .catch(resposta => {
-                            var erro = resposta.response.data.error;
-                            this.$swal({
+                            if(resposta){
+                                this.$swal({
                                 icon: 'error',
-                                text: erro,
+                                title: 'Erro ao Deletar!',
+                                text: 'Este usuário está vinculado a um Aluguel!',
                                 confirmButtonColor: '#198754',
                                 confirmButtonText: 'Ok'
-                            });
+                                });
+                            }  
                         });
                     this.reset();
                 }
