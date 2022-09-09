@@ -18,13 +18,16 @@
     "hchs-vue-charts": "^1.2.8",
     "register-service-worker": "^1.7.2",
     "serve-static": "^1.15.0",
+    "v-mask": "^2.3.0",
     "vue": "^2.6.14",
     "vue-apexcharts": "^1.6.2",
     "vue-chartkick": "^0.6.1",
     "vue-router": "^3.5.1",
     "vue-sweetalert2": "^5.0.5",
+    "vue-the-mask": "^0.11.1",
     "vue-toast-notification": "^0.6.3",
     "vuetify": "^2.6.0",
+    "vuetify-mask": "^1.1.2",
     "vuex": "^3.6.2"
   },
   "devDependencies": {
