@@ -100,6 +100,7 @@
                                         style="margin-top: 9px;"
                                         v-bind="attrs"
                                         v-on="on"
+                                        @click="reset()"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -313,11 +314,17 @@ export default {
     data() {
         return {
             isLoading: true,
+            pagination: {
+                pageNumber: 1,
+                pageSize: 5,
+            },
+
             aluguel: {
                 id: '',
                 livro: {
                     id: '',
                     nome: '',
+                    quantidade: '',
                     editora: {
                         codigoEditora: '',
                         nome: '',
@@ -345,7 +352,6 @@ export default {
             livroRules: [v => (v && v.nome != null) || 'Selecione um livro!'],
             dataPrevisaoRules: [
                 v => !!v || 'Campo data de previsao é obrigatório!',
-                v => (v && v >= this.editedItem.dataAluguel) || 'Data de previsão não pode ser menor que a de aluguel!'
             ],
             dataDevolucaoRules: [
                 v => !!v || 'Campo data de previsao é obrigatório!',
@@ -372,6 +378,7 @@ export default {
                 livro: {
                     id: '',
                     nome: null,
+                    quantidade: '',
                     editora: {
                         codigoEditora: '',
                         nome: '',
@@ -427,6 +434,16 @@ export default {
         
     },
 
+    created(){
+        Usuario.listar().then(resposta =>{
+                this.usuarios = resposta.data;
+        });
+
+        Livro.listar().then(resposta =>{
+                this.livros = resposta.data;
+        })
+    },
+
     mounted() {
         this.listar();
         this.pegarDataAtual();
@@ -434,19 +451,16 @@ export default {
 
     methods: {
 
+        onPageNumberChange(pageNumber) {
+            this.pagination.pageNumber = pageNumber;
+            this.listar();
+        },
+
         listar() {
             Aluguel.listar().then(resposta => {
                 this.isLoading = false;
                 this.alugueis = resposta.data;
             });
-
-            Usuario.listar().then(resposta =>{
-                this.usuarios = resposta.data;
-            });
-
-            Livro.listar().then(resposta =>{
-                this.livros = resposta.data;
-            })
         },
        
         close() {
@@ -456,6 +470,15 @@ export default {
                 this.editedIndex = -1;
             });
             //this.$refs.form.resetValidation();
+        },
+
+        reset() {
+            this.$refs.form.reset();
+        },
+
+        atualizarform() {
+            this.aluguel = {};
+            this.v$.$reset();
         },
 
         deleteItem(item) {
@@ -548,8 +571,16 @@ export default {
                         usuario: {id:this.editedItem.usuario.id},
                         livro:   {id:this.editedItem.livro.id},
                         dataPrevisao: this.formatDate(this.editedItem.dataPrevisao),   
-                    }; 
-                    Aluguel.salvar(save)
+                    };
+                    if(this.editedItem.livro.quantidade === 0){
+                        this.$swal({
+                            icon: 'error',
+                                    text: "Erro! Quantidade de livro insuficiente",
+                                    confirmButtonColor: '#198754',
+                                    confirmButtonText: 'Ok'
+                        })
+                    } else {
+                        Aluguel.salvar(save)
                         .then(resposta => {  
                             if (resposta != null) {
                                 this.$swal('Alugado com sucesso!', '', 'success');
@@ -567,7 +598,11 @@ export default {
                                 });
                             }
                         });
+
+                    }
+                    
                 }
+                    
             }
         },
         

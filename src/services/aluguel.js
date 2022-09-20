@@ -2,8 +2,9 @@ import { http } from "./config";
 
 export default{
 
-    listar:() => {
-        return http.get('renting');
+    listar:(pagination) => {
+        const {pageNumber, pageSize} = pagination;
+        return http.get(`renting?page=${pageNumber}&size=${pageSize}`);
     },
 
     salvar:(aluguel) => {
