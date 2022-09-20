@@ -159,17 +159,72 @@
                                                     required
                                                     color="#198754"
                                                 ></v-text-field>
+                                                
+                                                <v-menu
+                                                    v-if="editedIndex == -1"
+                                                    v-model="menu1"
+                                                    :close-on-content-click="false"
+                                                    :nudge-right="40"
+                                                    transition="scale-transition"
+                                                    offset-y
+                                                    max-width="290px"
+                                                    min-width="auto"
+                                                >
+                                                    <template v-slot:activator="{ on, attrs }">
+                                                        <v-text-field
+                                                            :value="lancamentoDateFormatted"
+                                                            :rules="lancamentoRules"
+                                                            label="Data de lançamento*"
+                                                            append-icon="mdi-calendar"
+                                                            readonly
+                                                            id="lacamento"
+                                                            required
+                                                            v-bind="attrs"
+                                                            v-on="on"
+                                                            color="#198754"
+                                                        ></v-text-field>
+                                                    </template>
+                                                    <v-date-picker
+                                                        v-model="editedItem.lancamento"
+                                                        :min="dataAtual"
+                                                        @input="menu1 = false"
+                                                        color="#198754"
+                                                    ></v-date-picker>
+                                                </v-menu>
+                                                
+                                                <v-menu
+                                                    v-if="editedIndex != -1"
+                                                    v-model="menu2"
+                                                    :close-on-content-click="false"
+                                                    :nudge-right="40"
+                                                    transition="scale-transition"
+                                                    offset-y
+                                                    max-width="290px"
+                                                    min-width="auto"
+                                                >
+                                                    <template v-slot:activator="{ on, attrs }">
+                                                        <v-text-field
+                                                            :value="lancamentoDateFormatted"
+                                                            :rules="lancamentoRules"
+                                                            label="Data de lançamento*"
+                                                            append-icon="mdi-calendar"
+                                                            readonly
+                                                            id="lacamento"
+                                                            required
+                                                            v-bind="attrs"
+                                                            v-on="on"
+                                                            color="#198754"
+                                                        ></v-text-field>
+                                                    </template>
+                                                    <v-date-picker
+                                                        v-model="editedItem.lancamento"
+                                                        :max="dataAtual"
+                                                        :min="dataAtual"
+                                                        @input="menu2 = false"
+                                                        color="#198754"
+                                                    ></v-date-picker>
+                                                </v-menu>
 
-                                                <v-text-field
-                                                    v-model="editedItem.lancamento"
-                                                    v-mask="'##/##/####'" 
-                                                    :rules="lancamentoRules"
-                                                    label="Data de lançamento*"
-                                                    append-icon="mdi-calendar"
-                                                    required
-                                                    color="#198754"
-                                                ></v-text-field>
-                                                    
                                                 <v-text-field
                                                     v-model="editedItem.quantidade"
                                                     :rules="quantidadeRules"
@@ -289,6 +344,10 @@ export default {
             editoras: [],
     
             valid: true,
+            menu1: false,
+            menu2: false,
+            dataAtual: '',
+            nowDate: new Date().toISOString().slice(0, 10),
             
 
             nameRules: [
@@ -364,7 +423,7 @@ export default {
         lancamentoDateFormatted() { 
             if(!this.editedItem.lancamento) return null
             return this.formatDate(this.editedItem.lancamento);
-        },
+        },   
     },
 
     watch: {
@@ -397,6 +456,7 @@ export default {
 
         editItem(item) {
             this.editedIndex = this.livros.content.indexOf(item);
+            item.lancamento = this.formatDate2(item.lancamento);
             this.editedItem = Object.assign({}, item);
             this.dialog = true;
         },
@@ -408,6 +468,15 @@ export default {
                 this.editedIndex = -1;
             });
             this.$refs.form.resetValidation();
+        },
+
+        atualizarform() {
+            this.livro = {};
+            this.v$.$reset();
+        },
+
+        reset() {
+            this.$refs.form.reset();
         },
 
         closeDelete() {
@@ -473,6 +542,10 @@ export default {
             const [yyyy, mm, dd] = date.split('-');
             return `${dd}/${mm}/${yyyy}`;
         },
+        formatDate2(date) {
+            const [dd, mm, yyyy] = date.split('/');
+            return `${yyyy}-${mm}-${dd}`;
+        },
 
         save() {
             if (this.$refs.form.validate()) {
@@ -481,7 +554,7 @@ export default {
                         nome: this.editedItem.nome,
                         editora: {codigoEditora: this.editedItem.editora.codigoEditora},
                         autor: this.editedItem.autor,
-                        lancamento: this.editedItem.lancamento,
+                        lancamento: this.formatDate(this.editedItem.lancamento),
                         quantidade: this.editedItem.quantidade,
                         totalalugado: this.editedItem.totalalugado
                     };
@@ -507,9 +580,10 @@ export default {
                         nome: this.editedItem.nome,
                         editora: {codigoEditora: this.editedItem.editora.codigoEditora},
                         autor: this.editedItem.autor,
-                        lancamento: this.editedItem.lancamento,
+                        lancamento: this.formatDate(this.editedItem.lancamento),
                         quantidade: this.editedItem.quantidade
                     }; 
+                    
                     Livro.salvar(save)
                         .then(resposta => {  
                             if (resposta != null) {
